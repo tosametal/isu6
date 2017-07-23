@@ -33,7 +33,7 @@ def config(key):
 
 def dbh():
     if hasattr(request, 'db'):
-        return request.db
+        return request.dbh().cursor()
     else:
         request.db = MySQLdb.connect(**{
             'host': config('db_host'),
@@ -48,7 +48,7 @@ def dbh():
         cur = request.db.cursor()
         cur.execute("SET SESSION sql_mode='TRADITIONAL,NO_AUTO_VALUE_ON_ZERO,ONLY_FULL_GROUP_BY'")
         cur.execute('SET NAMES utf8mb4')
-        return request.db
+        return cur
 
 @app.teardown_request
 def close_db(exception=None):
@@ -65,7 +65,7 @@ def set_name(func):
     def wrapper(*args, **kwargs):
         if "user_id" in session:
             request.user_id   = user_id = session['user_id']
-            cur = dbh().cursor()
+            cur = dbh()
             cur.execute('SELECT name FROM user WHERE id = %s', (user_id, ))
             user = cur.fetchone()
             if user == None:
@@ -87,7 +87,7 @@ def authenticate(func):
 
 @app.route('/initialize')
 def get_initialize():
-    cur = dbh().cursor()
+    cur = dbh()
     cur.execute('DELETE FROM entry WHERE id > 7101')
     origin = config('isutar_origin')
     urllib.request.urlopen(origin + '/initialize')
@@ -99,7 +99,7 @@ def get_index():
     PER_PAGE = 10
     page = int(request.args.get('page', '1'))
 
-    cur = dbh().cursor()
+    cur = dbh()
     cur.execute('SELECT * FROM entry ORDER BY updated_at DESC LIMIT %s OFFSET %s', (PER_PAGE, PER_PAGE * (page - 1),))
     entries = cur.fetchall()
     for entry in entries:
@@ -132,7 +132,7 @@ def create_keyword():
     if is_spam_contents(description) or is_spam_contents(keyword):
         abort(400)
 
-    cur = dbh().cursor()
+    cur = dbh()
     sql = """
         INSERT INTO entry (author_id, keyword, description, created_at, updated_at)
         VALUES (%s,%s,%s,NOW(), NOW())
@@ -154,7 +154,7 @@ def post_register():
     if name == None or name == '' or pw == None or pw == '':
         abort(400)
 
-    user_id = register(dbh().cursor(), name, pw)
+    user_id = register(dbh(), name, pw)
     session['user_id'] = user_id
     return redirect('/')
 
@@ -175,7 +175,7 @@ def get_login():
 @app.route('/login', methods=['POST'])
 def post_login():
     name = request.form['name']
-    cur = dbh().cursor()
+    cur = dbh()
     cur.execute("SELECT * FROM user WHERE name = %s", (name, ))
     row = cur.fetchone()
     if row == None or row['password'] != hashlib.sha1((row['salt'] + request.form['password']).encode('utf-8')).hexdigest():
@@ -195,7 +195,7 @@ def get_keyword(keyword):
     if keyword == '':
         abort(400)
 
-    cur = dbh().cursor()
+    cur = dbh()
     cur.execute('SELECT * FROM entry WHERE keyword = %s', (keyword,))
     entry = cur.fetchone()
     if entry == None:
@@ -212,7 +212,7 @@ def delete_keyword(keyword):
     if keyword == '':
         abort(400)
 
-    cur = dbh().cursor()
+    cur = dbh()
     cur.execute('SELECT * FROM entry WHERE keyword = %s', (keyword, ))
     row = cur.fetchone()
     if row == None:
@@ -226,7 +226,7 @@ def htmlify(content):
     if content == None or content == '':
         return ''
 
-    cur = dbh().cursor()
+    cur = dbh()
     cur.execute('SELECT * FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC')
     keywords = cur.fetchall()
     keyword_re = re.compile("(%s)" % '|'.join([ re.escape(k['keyword']) for k in keywords]))
