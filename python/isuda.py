@@ -51,10 +51,10 @@ def dbh():
         return cur
 
 def dbh_isutar():
-    if hasattr(request, 'db'):
-        return request.db.cursor()
+    if hasattr(request, 'db2'):
+        return request.db2.cursor()
     else:
-        request.db = MySQLdb.connect(**{
+        request.db2 = MySQLdb.connect(**{
             'host': os.environ.get('ISUTAR_DB_HOST', 'localhost'),
             'port': int(os.environ.get('ISUTAR_DB_PORT', '3306')),
             'user': os.environ.get('ISUTAR_DB_USER', 'root'),
@@ -64,7 +64,7 @@ def dbh_isutar():
             'cursorclass': MySQLdb.cursors.DictCursor,
             'autocommit': True,
         })
-        cur = request.db.cursor()
+        cur = request.db2.cursor()
         cur.execute("SET SESSION sql_mode='TRADITIONAL,NO_AUTO_VALUE_ON_ZERO,ONLY_FULL_GROUP_BY'")
         cur.execute('SET NAMES utf8mb4')
         return cur
@@ -276,7 +276,7 @@ def load_stars(keyword):
 def get_stars(keyword):
     cur = dbh().cursor()
     cur.execute('SELECT * FROM star WHERE keyword = %s', keyword)
-    cur.fetchall()
+    return cur.fetchall()
 
 def is_spam_contents(content):
     with urllib.request.urlopen(config('isupam_origin'), urllib.parse.urlencode({ "content": content }).encode('utf-8')) as res:
