@@ -269,13 +269,8 @@ def get_keywords():
     return cur.fetchall()
 
 def load_stars(keyword):
-    origin = config('isutar_origin')
-    url = "%s/stars" % origin
-    return get_stars(keyword)
-
-def get_stars(keyword):
-    cur = dbh().cursor()
-    cur.execute('SELECT * FROM star WHERE keyword = %s', keyword)
+    cur = dbh_isutar()
+    cur.execute("SELECT * FROM star WHERE keyword = '" + keyword + "'")
     return cur.fetchall()
 
 def is_spam_contents(content):
