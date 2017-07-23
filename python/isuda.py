@@ -102,8 +102,9 @@ def get_index():
     cur = dbh().cursor()
     cur.execute('SELECT * FROM entry ORDER BY updated_at DESC LIMIT %s OFFSET %s', (PER_PAGE, PER_PAGE * (page - 1),))
     entries = cur.fetchall()
+    keywords = get_keywords()
     for entry in entries:
-        entry['html'] = htmlify(entry['description'])
+        entry['html'] = htmlify(entry['description'],keywords)
         entry['stars'] = load_stars(entry['keyword'])
 
     cur.execute('SELECT COUNT(*) AS count FROM entry')
@@ -201,7 +202,8 @@ def get_keyword(keyword):
     if entry == None:
         abort(404)
 
-    entry['html'] = htmlify(entry['description'])
+    keywords = get_keywords()
+    entry['html'] = htmlify(entry['description'],keywords)
     entry['stars'] = load_stars(entry['keyword'])
     return render_template('keyword.html', entry = entry)
 
@@ -222,13 +224,10 @@ def delete_keyword(keyword):
 
     return redirect('/')
 
-def htmlify(content):
+def htmlify(content, keywords):
     if content == None or content == '':
         return ''
 
-    cur = dbh().cursor()
-    cur.execute('SELECT * FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC')
-    keywords = cur.fetchall()
     keyword_re = re.compile("(%s)" % '|'.join([ re.escape(k['keyword']) for k in keywords]))
     kw2sha = {}
     def replace_keyword(m):
@@ -243,6 +242,11 @@ def htmlify(content):
         result = re.sub(re.compile(hash), link, result)
 
     return re.sub(re.compile("\n"), "<br />", result)
+
+def get_keywords():
+    cur = dbh()
+    cur.execute('SELECT * FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC')
+    return cur.fetchall()
 
 def load_stars(keyword):
     origin = config('isutar_origin')
