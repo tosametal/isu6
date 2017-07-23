@@ -11,8 +11,8 @@ import re
 import string
 import urllib
 
-static_folder = pathlib.Path(__file__).resolve().parent.parent / 'public'
-app = Flask(__name__, static_folder = str(static_folder), static_url_path='')
+# static_folder = pathlib.Path(__file__).resolve().parent.parent / 'public'
+app = Flask(__name__, static_folder = "/home/isucon/webapp/public", static_url_path='')
 
 app.secret_key = 'tonymoris'
 
