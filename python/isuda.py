@@ -96,7 +96,7 @@ def get_initialize():
 @app.route('/')
 @set_name
 def get_index():
-    PER_PAGE = 1
+    PER_PAGE = 10
     page = int(request.args.get('page', '1'))
 
     cur = dbh()
