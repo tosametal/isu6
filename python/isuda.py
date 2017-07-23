@@ -33,7 +33,7 @@ def config(key):
 
 def dbh():
     if hasattr(request, 'db'):
-        return request.dbh().cursor()
+        return request.db.cursor()
     else:
         request.db = MySQLdb.connect(**{
             'host': config('db_host'),
