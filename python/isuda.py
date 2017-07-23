@@ -50,6 +50,26 @@ def dbh():
         cur.execute('SET NAMES utf8mb4')
         return cur
 
+def dbh_isutar():
+    if hasattr(request, 'db'):
+        return request.db.cursor()
+    else:
+        request.db = MySQLdb.connect(**{
+            'host': os.environ.get('ISUTAR_DB_HOST', 'localhost'),
+            'port': int(os.environ.get('ISUTAR_DB_PORT', '3306')),
+            'user': os.environ.get('ISUTAR_DB_USER', 'root'),
+            'passwd': os.environ.get('ISUTAR_DB_PASSWORD', ''),
+            'db': 'isutar',
+            'charset': 'utf8mb4',
+            'cursorclass': MySQLdb.cursors.DictCursor,
+            'autocommit': True,
+        })
+        cur = request.db.cursor()
+        cur.execute("SET SESSION sql_mode='TRADITIONAL,NO_AUTO_VALUE_ON_ZERO,ONLY_FULL_GROUP_BY'")
+        cur.execute('SET NAMES utf8mb4')
+        return cur
+
+
 @app.teardown_request
 def close_db(exception=None):
     if hasattr(request, 'db'):
@@ -251,10 +271,12 @@ def get_keywords():
 def load_stars(keyword):
     origin = config('isutar_origin')
     url = "%s/stars" % origin
-    params = urllib.parse.urlencode({'keyword': keyword})
-    with urllib.request.urlopen(url + "?%s" % params) as res:
-        data = json.loads(res.read().decode('utf-8'))
-        return data['stars']
+    return get_stars(keyword)
+
+def get_stars(keyword):
+    cur = dbh().cursor()
+    cur.execute('SELECT * FROM star WHERE keyword = %s', keyword)
+    cur.fetchall()
 
 def is_spam_contents(content):
     with urllib.request.urlopen(config('isupam_origin'), urllib.parse.urlencode({ "content": content }).encode('utf-8')) as res:
